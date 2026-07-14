@@ -23,6 +23,16 @@ export default {
       return json({ ok: false, error: "bad json" }, 400);
     }
 
+    // E-metric events: pack_view = engaged user hit the shopping-list moment, pack_tap = affiliate click
+    if (new URL(request.url).pathname === "/event") {
+      const ev = String(body.ev || ""), cid = String(body.cid || "").slice(0, 32);
+      if (!["pack_view", "pack_tap"].includes(ev) || !cid) return json({ ok: false }, 400);
+      await env.DB.prepare("INSERT INTO events (ev, cid, ts) VALUES (?, ?, ?)")
+        .bind(ev, cid, new Date().toISOString())
+        .run();
+      return json({ ok: true });
+    }
+
     // ponytail: honeypot field, add Turnstile if bots actually show up
     if (body.website) return json({ ok: true });
 

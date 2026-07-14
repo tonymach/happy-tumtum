@@ -96,6 +96,15 @@
   .check.done .txt{color:var(--dim)}
   .check.done .txt .hint{color:var(--dimmer)}
 
+  /* pack: the shopping-list moment */
+  .pack{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--amber-bg);border:1px solid var(--amber-line);border-radius:12px;
+    padding:14px 15px;margin-top:16px}
+  .pack .pl{font-family:var(--mono);font-size:12.5px;color:var(--ink);letter-spacing:.5px;line-height:1.5}
+  .pack .pl b{color:var(--amber);letter-spacing:2px;font-size:10px;display:block;margin-bottom:3px}
+  .pack a{flex:0 0 auto;font-family:var(--mono);font-weight:700;font-size:11.5px;letter-spacing:1px;
+    color:#F6F4EE;background:var(--amber);text-decoration:none;border-radius:9px;padding:12px 13px}
+
   /* bottom bar */
   .foot{position:fixed;bottom:0;left:0;right:0;max-width:468px;margin:0 auto;
     padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(0deg,var(--panel) 70%,transparent);
@@ -152,6 +161,14 @@
   const $=s=>document.querySelector(s);
   const CARB_HR=75, GEL_G=25;            // his numbers
   const gels=h=>Math.max(1,Math.ceil((CARB_HR*h)/GEL_G));
+
+  // ponytail: placeholder store link + utm; swap for The Feed CJ deep link once approved
+  const AFF="https://thefeed.com/?utm_source=happytumtum&utm_medium=app&utm_campaign=pack";
+  const API="https://tumtum-signup.x-25e.workers.dev";
+  const cid=(()=>{try{let c=localStorage.getItem("cid");if(!c){c=Math.random().toString(36).slice(2,14);localStorage.setItem("cid",c);}return c;}catch(e){return "anon";}})();
+  const sent={};
+  const track=ev=>{if(sent[ev])return;sent[ev]=1;
+    try{fetch(API+"/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ev,cid})}).catch(()=>{});}catch(e){}};
 
   // ── per-session checklists ──  {id,label,hint}  hint may be a fn(dur)
   const gelLine=()=>({id:"gels",label:"Gels packed",grp:"fuel",hint:d=>gels(d)+" gel"+(gels(d)>1?"s":"")+" for the session"});
@@ -241,6 +258,13 @@
         <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></div>
         <div class="txt">${it.label}${it.hint?` <span class="hint">· ${it.hint}</span>`:""}</div></div>`;
     });
+    // pack: the shopping-list / money moment (E metric)
+    if(NEEDS_DUR(S.sess)){
+      const btl=S.sess==="run"?"1 bottle":"2 bottles";
+      html+=`<div class="pack"><div class="pl"><b>PACK</b>${gels(S.dur)} gels · ${btl} · salt tabs</div>
+        <a href="${AFF}" target="_blank" rel="noopener" id="buyPack">BUY THE LIST →</a></div>`;
+      track("pack_view");
+    }
     $("#list").innerHTML=html;
     // status
     const total=its.length, hit=its.filter(it=>c[it.id]).length, go=hit===total&&total>0;
@@ -251,6 +275,7 @@
   }
 
   document.body.addEventListener("click",e=>{
+    if(e.target.closest("#buyPack")){sent.pack_tap=0;track("pack_tap");return;}
     const seg=e.target.closest("[data-sess]");
     if(seg){S.sess=seg.dataset.sess;render();save();return;}
     const step=e.target.closest("[data-dstep]");
