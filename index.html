@@ -1,0 +1,215 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pre-Flight — the fueling checklist for long sessions</title>
+<meta name="description" content="A free GO/NO-GO fueling checklist for marathon and triathlon training. Carbs, salt, gear, alarms — run it before every long session.">
+<meta property="og:title" content="Pre-Flight — the fueling checklist for long sessions">
+<meta property="og:description" content="Pilots don't take off on vibes. Don't start a 4-hour ride on them either. Free checklist, works offline on your phone.">
+<meta property="og:image" content="https://tonymach.github.io/preflight/app/icon-512.png">
+<meta name="theme-color" content="#05080B">
+<link rel="icon" type="image/png" href="app/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --panel:#0E1319; --raised:#161E28; --raised2:#1D2733; --line:#26303D;
+    --ink:#EAF1F8; --dim:#8093A6; --dimmer:#556477;
+    --amber:#FFB020;
+    --go:#3BD57F; --go-bg:#0E3322;
+    --nogo:#FF6B4A; --nogo-bg:#2A100B;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:#05080B;color:var(--ink);font-family:var(--sans);line-height:1.5}
+  a{color:var(--amber)}
+  main{max-width:560px;margin:0 auto;padding:48px 20px 80px}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--dimmer);margin-bottom:18px}
+  .eyebrow b{color:var(--amber);font-weight:600}
+  h1{font-family:var(--mono);font-weight:700;font-size:clamp(26px,6vw,38px);line-height:1.18;
+    letter-spacing:-.5px;margin:0 0 18px}
+  h1 .go-word{color:var(--go)}
+  .sub{color:var(--dim);font-size:16px;margin:0 0 14px}
+  .sub b{color:var(--ink);font-weight:600}
+
+  /* ── the checklist card: the hero IS the product ── */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;margin:34px 0 12px;
+    box-shadow:0 30px 90px rgba(0,0,0,.6);overflow:hidden}
+  .card header{display:flex;align-items:center;justify-content:space-between;
+    padding:14px 16px;border-bottom:1px solid var(--line)}
+  .card header .t{font-family:var(--mono);font-weight:700;font-size:13px;letter-spacing:2.5px}
+  .card header .t small{display:block;font-size:9.5px;font-weight:500;color:var(--dimmer);letter-spacing:2px;margin-top:2px}
+  .status{display:flex;align-items:center;gap:8px;padding:6px 12px 6px 9px;border-radius:24px;
+    background:var(--nogo-bg);transition:.25s}
+  .status .dot{width:10px;height:10px;border-radius:50%;background:var(--nogo);box-shadow:0 0 10px var(--nogo);transition:.25s}
+  .status .lab{font-family:var(--mono);font-weight:700;font-size:11.5px;letter-spacing:1.5px;color:var(--nogo);transition:.25s}
+  .status .ct{font-family:var(--mono);font-size:10.5px;color:var(--dimmer)}
+  .card.go .status{background:var(--go-bg)}
+  .card.go .status .dot{background:var(--go);box-shadow:0 0 12px var(--go)}
+  .card.go .status .lab{color:var(--go)}
+
+  .card .body{padding:14px}
+  .check{display:flex;align-items:center;gap:13px;background:var(--raised);border:1px solid var(--line);
+    border-radius:12px;padding:14px 15px;margin-bottom:8px;cursor:pointer;user-select:none;transition:.12s}
+  .check:active{transform:scale(.99)}
+  .check .box{width:26px;height:26px;border-radius:8px;border:2px solid var(--dimmer);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;transition:.12s}
+  .check .box svg{width:15px;height:15px;opacity:0;transform:scale(.5);transition:.15s;stroke:#04140B}
+  .check .txt{font-size:15px}
+  .check .txt .hint{font-family:var(--mono);font-size:11px;color:var(--dimmer)}
+  .check.done{border-color:var(--go-bg);background:linear-gradient(0deg,var(--go-bg),var(--raised))}
+  .check.done .box{background:var(--go);border-color:var(--go)}
+  .check.done .box svg{opacity:1;transform:scale(1)}
+  .check.done .txt{color:var(--dim)}
+
+  /* item 4: the email field is the last checklist item */
+  .final{display:flex;align-items:center;gap:13px;background:var(--raised);border:1px solid var(--amber);
+    border-radius:12px;padding:9px 9px 9px 15px;margin-bottom:0;transition:.2s}
+  .final .num{font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:1px;flex:0 0 auto}
+  .final input[type=email]{flex:1;min-width:0;background:transparent;border:none;outline:none;
+    color:var(--ink);font-family:var(--mono);font-size:15px;padding:10px 0}
+  .final input::placeholder{color:var(--dimmer)}
+  .final button{flex:0 0 auto;border:none;border-radius:9px;padding:12px 16px;cursor:pointer;
+    font-family:var(--mono);font-weight:700;font-size:12.5px;letter-spacing:1.5px;
+    background:var(--amber);color:#100B02;transition:.15s}
+  .final button:hover{filter:brightness(1.1)}
+  .final button:focus-visible,.check:focus-visible,a:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .final input:focus-visible{outline:none}
+  .final:focus-within{box-shadow:0 0 0 1px var(--amber),0 4px 18px rgba(255,176,32,.18)}
+  .card.go .final{border-color:var(--go);box-shadow:none}
+
+  .msg{font-family:var(--mono);font-size:12px;letter-spacing:.5px;padding:12px 16px 14px;min-height:20px}
+  .msg.err{color:var(--nogo)}
+  .msg.ok{color:var(--go)}
+
+  .tiny{font-family:var(--mono);font-size:11px;color:var(--dimmer);text-align:center;margin:0 0 56px}
+
+  /* ── what it does ── */
+  .grp{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;color:var(--dimmer);
+    text-transform:uppercase;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+  .grp::after{content:"";flex:1;height:1px;background:var(--line)}
+  .feat{display:flex;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px;margin-bottom:10px}
+  .feat .k{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--amber);
+    flex:0 0 96px;letter-spacing:1px;padding-top:1px}
+  .feat p{margin:0;font-size:14px;color:var(--dim)}
+  .feat p b{color:var(--ink);font-weight:600}
+
+  .try{display:block;text-align:center;font-family:var(--mono);font-weight:700;font-size:14px;
+    letter-spacing:2px;color:var(--go);text-decoration:none;background:var(--go-bg);
+    border:1px solid var(--go);border-radius:14px;padding:17px;margin:32px 0 10px;transition:.15s}
+  .try:hover{box-shadow:0 0 24px rgba(59,213,127,.25)}
+  footer{font-family:var(--mono);font-size:11px;color:var(--dimmer);text-align:center;margin-top:40px}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  @media (max-width:420px){
+    .feat{flex-direction:column;gap:6px}
+    .final button{padding:12px 12px}
+  }
+</style>
+
+<main>
+  <div class="eyebrow"><b>FUEL BLOCK</b> · PRE-FLIGHT</div>
+  <h1>The training is the fun part.<br>Fueling is the checklist.</h1>
+  <p class="sub">I'm training for my first Ironman and the hardest part isn't the hours — it's remembering the gels, the salt, the alarm, the second bottle, <b>every single session</b>.</p>
+  <p class="sub">Pilots solved this decades ago: they don't take off on vibes, they run a checklist. <b>Pre-Flight</b> is that, for long training days. Pick the session, it tells you what to pack (including the gel math), tick every line, and the lamp says <b style="color:var(--go)">GO</b>.</p>
+
+  <div class="card" id="card">
+    <header>
+      <div class="t">SIGNUP CHECK<small>RUN BEFORE TAKEOFF</small></div>
+      <div class="status"><span class="dot"></span><span class="lab" id="lab">NO-GO</span><span class="ct" id="ct">0/4</span></div>
+    </header>
+    <div class="body">
+      <div class="check" data-i="0" tabindex="0" role="checkbox" aria-checked="false">
+        <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></div>
+        <div class="txt">Training for something long <span class="hint">· marathon, 70.3, full — counts</span></div>
+      </div>
+      <div class="check" data-i="1" tabindex="0" role="checkbox" aria-checked="false">
+        <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></div>
+        <div class="txt">Fueling still feels like guesswork</div>
+      </div>
+      <div class="check" data-i="2" tabindex="0" role="checkbox" aria-checked="false">
+        <div class="box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></div>
+        <div class="txt">Have bonked at least once <span class="hint">· be honest</span></div>
+      </div>
+      <form class="final" id="form">
+        <span class="num">04</span>
+        <input type="email" id="email" placeholder="your@email.com" autocomplete="email" required aria-label="Email address">
+        <input type="text" name="website" id="hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+        <button type="submit" id="btn">SEND IT</button>
+      </form>
+    </div>
+    <div class="msg" id="msg" role="status"></div>
+  </div>
+  <p class="tiny">free forever · no spam · one email when it ships to you</p>
+
+  <div class="grp">What you get</div>
+  <div class="feat"><div class="k">ADAPTS</div><p>Swim, bike, run or brick — <b>the list changes with the session</b>. No wetsuit line on a run day.</p></div>
+  <div class="feat"><div class="k">GEL MATH</div><p>Set the duration and it computes fuel: <b>2h ride → 6 gels · 150g carbs</b>. Counted, not guessed.</p></div>
+  <div class="feat"><div class="k">GO / NO-GO</div><p>Everything ticked, the lamp goes green. Something missing — <b>you find out in the kitchen, not at kilometre 60</b>.</p></div>
+  <div class="feat"><div class="k">FREE APP</div><p>It's a web app: <b>works offline, no app store, no account</b>. Open it on your phone, Share → Add to Home Screen, done.</p></div>
+
+  <a class="try" href="app/">✈ TRY THE CHECKLIST NOW →</a>
+  <p class="tiny">no signup needed to use it — the list is for updates</p>
+
+  <footer>PRE-FLIGHT · FUEL BLOCK · built mid-Ironman-build by a guy who bonked</footer>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  const API="https://preflight-signup.x-25e.workers.dev";
+  const card=document.getElementById("card"),lab=document.getElementById("lab"),
+        ct=document.getElementById("ct"),msg=document.getElementById("msg");
+  const state=[false,false,false,false];
+
+  function paint(){
+    const n=state.filter(Boolean).length;
+    ct.textContent=n+"/4";
+    const go=n===4;
+    card.classList.toggle("go",go);
+    lab.textContent=go?"GO":"NO-GO";
+  }
+
+  function toggle(el){
+    const i=+el.dataset.i;
+    state[i]=!state[i];
+    el.classList.toggle("done",state[i]);
+    el.setAttribute("aria-checked",state[i]);
+    paint();
+  }
+  document.querySelectorAll(".check").forEach(el=>{
+    el.addEventListener("click",()=>toggle(el));
+    el.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();toggle(el);}});
+  });
+
+  document.getElementById("form").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const btn=document.getElementById("btn");
+    btn.disabled=true;btn.textContent="…";
+    msg.className="msg";msg.textContent="";
+    try{
+      const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({email:document.getElementById("email").value,website:document.getElementById("hp").value})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok&&d.ok){
+        state.fill(true);
+        document.querySelectorAll(".check").forEach(el=>{el.classList.add("done");el.setAttribute("aria-checked","true");});
+        paint();
+        msg.className="msg ok";msg.textContent="✈ CLEARED — YOU'RE ON THE LIST";
+        document.getElementById("form").style.opacity=".55";
+        btn.textContent="SENT";
+      }else{
+        msg.className="msg err";msg.textContent="NO-GO — check the email and retry";
+        btn.disabled=false;btn.textContent="SEND IT";
+      }
+    }catch(err){
+      msg.className="msg err";msg.textContent="NO-GO — network error, retry";
+      btn.disabled=false;btn.textContent="SEND IT";
+    }
+  });
+})();
+</script>

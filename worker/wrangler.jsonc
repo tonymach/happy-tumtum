@@ -1,0 +1,13 @@
+{
+  "name": "preflight-signup",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-14",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "preflight-signups",
+      "database_id": "1971f6eb-ba6b-4714-91b9-2d3bb67029f2"
+    }
+  ]
+}
