@@ -72,9 +72,13 @@
   .seg:active{transform:scale(.96)}
   .seg.on{background:var(--pine);border-color:var(--pine);color:#F6F4EE;
     box-shadow:0 4px 14px rgba(30,58,47,.18)}
-  #dur{margin-bottom:16px}
-  #dur.hide{display:none}
-  #dur .seg{padding:11px 4px}
+  .durrow{display:flex;align-items:center;gap:16px;background:var(--raised);border:1px solid var(--line);
+    border-radius:14px;padding:14px 16px;margin-bottom:16px}
+  .durrow.hide{display:none}
+  .dlab{min-width:92px}
+  #durLab{font-family:var(--mono);font-weight:700;font-size:22px}
+  .dsub{display:block;font-family:var(--mono);font-size:11px;color:var(--dimmer);margin-top:2px}
+  input[type=range]{flex:1;accent-color:var(--pine);height:30px;margin:0}
 
   /* group label */
   .grp{font-family:var(--mono);font-size:11.5px;letter-spacing:3px;color:var(--dimmer);
@@ -139,7 +143,15 @@
   .chipin{width:86px;padding:13px 12px;border-radius:12px;border:1px solid var(--line);
     background:var(--raised);font-family:var(--mono);font-size:15px;color:var(--ink);outline:none}
   .chipin:focus{border-color:var(--pine)}
+  .chrow{display:flex;align-items:center;gap:16px;margin:4px 0}
+  #chVal{font-family:var(--mono);font-weight:700;font-size:18px;min-width:88px}
   .calc{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px;color:var(--dim)}
+  .wsub{font-size:14px;color:var(--dim);margin:0 0 10px}
+  .day{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .day .dl{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--dimmer);width:38px;flex:0 0 auto}
+  .day select{flex:1;padding:12px 10px;border-radius:12px;border:1px solid var(--line);
+    background:var(--raised);font-family:var(--mono);font-size:14px;color:var(--ink)}
+  .day select:disabled{opacity:.45}
   .shint{font-size:14px;color:var(--dim);margin:20px 0 0;line-height:1.5}
   .shint b{color:var(--ink)}
   .save{width:100%;margin-top:20px;border:none;border-radius:14px;padding:17px;cursor:pointer;
@@ -157,7 +169,7 @@
     .htop{flex-direction:column;align-items:flex-start;gap:14px}
     main{display:contents}
     .picker{grid-area:2/1;margin:0 22px 14px;grid-template-columns:repeat(2,1fr)}
-    #dur{grid-area:3/1;margin:0 22px;grid-template-columns:repeat(4,1fr)}
+    #dur{grid-area:3/1;margin:0 22px}
     .foot{grid-area:5/1;position:static;max-width:none;background:none;padding:14px 22px 20px}
     #list{grid-area:1/2/-1/3;overflow-y:auto;border-left:1px solid var(--line);
       padding:22px 24px;display:grid;grid-template-columns:repeat(3,1fr);
@@ -189,11 +201,9 @@
       <div class="seg" data-sess="brick"><span class="ic">⚡</span>BRICK</div>
     </div>
 
-    <div class="picker" id="dur">
-      <div class="seg" data-dur="1">1h</div>
-      <div class="seg" data-dur="2">2h</div>
-      <div class="seg" data-dur="3">3h</div>
-      <div class="seg" data-dur="5">5h</div>
+    <div class="durrow" id="dur">
+      <div class="dlab"><span id="durLab">2h</span><span class="dsub" id="durSub"></span></div>
+      <input type="range" id="durSlide" min="0.5" max="8" step="0.5" value="2" aria-label="Session length in hours">
     </div>
 
     <div id="list"></div>
@@ -217,16 +227,17 @@
         <input class="chipin" id="gelCustom" type="number" min="10" max="120" placeholder="…g" aria-label="Custom carbs per gel">
       </div>
       <div class="q">Carbs per hour</div>
-      <div class="chips" id="chChips">
-        <div class="chip" data-ch="60">60</div>
-        <div class="chip" data-ch="75">75</div>
-        <div class="chip" data-ch="90">90</div>
-        <input class="chipin" id="chCustom" type="number" min="20" max="150" placeholder="…g/h" aria-label="Custom carbs per hour">
+      <div class="chrow">
+        <span id="chVal">75 g/h</span>
+        <input type="range" id="chSlide" min="40" max="120" step="5" value="75" aria-label="Carbs per hour">
       </div>
       <div class="calc">or from weight:
         <input class="chipin" id="wkg" type="number" min="30" max="150" placeholder="kg" aria-label="Body weight in kg">
         <button class="chip hide" id="useCalc"></button>
       </div>
+      <div class="q">Your week · optional</div>
+      <p class="wsub">Set it once. The app opens on today's workout.</p>
+      <div id="week"></div>
       <p class="shint"><b>Swipe any checklist line left to delete it</b> if you don't carry the thing. ⚙ up top reopens this.</p>
       <button class="ghost hide" id="restore">RESTORE DELETED LINES</button>
       <button class="save" id="saveSetup">SAVE · LET'S GO</button>
@@ -306,7 +317,7 @@
   const NEEDS_DUR=s=>s!=="swim";
 
   // ── state ──
-  let S={sess:"bike",dur:2,checks:{},prefs:null,removed:{}};
+  let S={sess:"bike",dur:2,checks:{},prefs:null,removed:{},plan:null};
   const store={
     get(k){try{const r=localStorage.getItem(k);return r?JSON.parse(r):null;}catch(e){return null;}},
     set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
@@ -322,10 +333,13 @@
     return out;
   }
 
+  let fromPlan=false;
   function render(){
     document.querySelectorAll("#picker .seg").forEach(b=>b.classList.toggle("on",b.dataset.sess===S.sess));
     $("#dur").classList.toggle("hide",!NEEDS_DUR(S.sess));
-    document.querySelectorAll("#dur .seg").forEach(b=>b.classList.toggle("on",+b.dataset.dur===S.dur));
+    $("#durSlide").value=S.dur;
+    $("#durLab").textContent=(S.dur+"").replace(".5","½")+"h";
+    $("#durSub").textContent="×"+gels(S.dur)+" gels"+(fromPlan?" · today's plan":"");
     const its=items(),c=S.checks[S.sess]||{};
     let html="",lastG=null;
     its.forEach(it=>{
@@ -353,19 +367,34 @@
   // ── setup sheet ──
   let T={};
   const suggest=w=>Math.min(95,Math.max(50,Math.round(w))); // ponytail: ~1g/kg/h clamped; the real ceiling is gut training
+  const DAYS=[["mon","MON"],["tue","TUE"],["wed","WED"],["thu","THU"],["fri","FRI"],["sat","SAT"],["sun","SUN"]];
   function paintSetup(){
     document.querySelectorAll("[data-gel]").forEach(c=>c.classList.toggle("on",+c.dataset.gel===T.gelG));
-    document.querySelectorAll("[data-ch]").forEach(c=>c.classList.toggle("on",+c.dataset.ch===T.carbHr));
     $("#gelCustom").value=[20,25,30,40].includes(T.gelG)?"":T.gelG;
-    $("#chCustom").value=[60,75,90].includes(T.carbHr)?"":T.carbHr;
+    $("#chSlide").value=T.carbHr;
+    $("#chVal").textContent=T.carbHr+" g/h";
     $("#restore").classList.toggle("hide",!Object.values(S.removed).some(a=>a.length));
+  }
+  function weekUI(){
+    $("#week").innerHTML=DAYS.map(([d,L])=>{
+      const p=(S.plan||{})[d]||{};
+      const sOpts=[["","rest"],["swim","swim"],["bike","bike"],["run","run"],["brick","brick"]]
+        .map(([v,l])=>`<option value="${v}"${p.s===v?" selected":""}>${l}</option>`).join("");
+      let hOpts="";for(let h=0.5;h<=8;h+=0.5)hOpts+=`<option value="${h}"${(p.h||1)===h?" selected":""}>${h}h</option>`;
+      return `<div class="day"><span class="dl">${L}</span><select data-ps="${d}" aria-label="${L} sport">${sOpts}</select><select data-ph="${d}" aria-label="${L} hours"${p.s?"":" disabled"}>${hOpts}</select></div>`;
+    }).join("");
   }
   function openSetup(){
     T={...P(),wKg:S.prefs?.wKg||null};
     if(T.wKg)$("#wkg").value=T.wKg;
-    paintSetup();
+    paintSetup();weekUI();
     $("#setup").classList.remove("hide");
   }
+  $("#chSlide").addEventListener("input",e=>{T.carbHr=+e.target.value;paintSetup();});
+  document.body.addEventListener("change",e=>{
+    const ps=e.target.closest("[data-ps]");
+    if(ps)$(`[data-ph="${ps.dataset.ps}"]`).disabled=!ps.value;
+  });
   $("#wkg").addEventListener("input",()=>{
     const w=+$("#wkg").value;
     const b=$("#useCalc");
@@ -373,7 +402,6 @@
     else b.classList.add("hide");
   });
   $("#gelCustom").addEventListener("input",e=>{const v=+e.target.value;if(v>=10)T.gelG=v;paintSetup();$("#gelCustom").value=e.target.value;});
-  $("#chCustom").addEventListener("input",e=>{const v=+e.target.value;if(v>=20)T.carbHr=v;paintSetup();$("#chCustom").value=e.target.value;});
 
   document.body.addEventListener("click",e=>{
     const del=e.target.closest("[data-del]");
@@ -382,18 +410,19 @@
     if(e.target.closest("#gear")){openSetup();return;}
     const gc=e.target.closest("[data-gel]");
     if(gc){T.gelG=+gc.dataset.gel;paintSetup();return;}
-    const cc=e.target.closest("[data-ch]");
-    if(cc){T.carbHr=+cc.dataset.ch;paintSetup();return;}
     if(e.target.closest("#useCalc")){const w=+$("#wkg").value;T.carbHr=suggest(w);T.wKg=w;paintSetup();return;}
     if(e.target.closest("#restore")){S.removed={};paintSetup();render();save();return;}
     if(e.target.closest("#saveSetup")){
       S.prefs={gelG:T.gelG||DEF.gelG,carbHr:T.carbHr||DEF.carbHr,wKg:T.wKg||null};
-      $("#setup").classList.add("hide");render();save();return;
+      S.plan=null;
+      DAYS.forEach(([d])=>{
+        const s=$(`[data-ps="${d}"]`).value;
+        if(s)(S.plan=S.plan||{})[d]={s,h:+$(`[data-ph="${d}"]`).value};
+      });
+      $("#setup").classList.add("hide");applyPlan();render();save();return;
     }
     const seg=e.target.closest("[data-sess]");
-    if(seg){S.sess=seg.dataset.sess;render();save();return;}
-    const d=e.target.closest("[data-dur]");
-    if(d){S.dur=+d.dataset.dur;render();save();return;}
+    if(seg){S.sess=seg.dataset.sess;fromPlan=false;render();save();return;}
     const row=e.target.closest("[data-id]");
     if(row){
       if(row.dataset.swiped)return;
@@ -430,10 +459,19 @@
   list.addEventListener("pointerup",endSwipe);
   list.addEventListener("pointercancel",endSwipe);
 
+  $("#durSlide").addEventListener("input",e=>{S.dur=+e.target.value;fromPlan=false;render();save();});
+
+  function applyPlan(){
+    const today=["sun","mon","tue","wed","thu","fri","sat"][new Date().getDay()];
+    const p=S.plan&&S.plan[today];
+    if(p&&TPL[p.s]){S.sess=p.s;S.dur=p.h;fromPlan=true;}
+  }
+
   // ── boot ──
   const saved=store.get("preflight");
-  if(saved)S={...S,...saved,checks:saved.checks||{},removed:saved.removed||{},prefs:saved.prefs||null};
-  if(![1,2,3,5].includes(S.dur))S.dur=2;
+  if(saved)S={...S,...saved,checks:saved.checks||{},removed:saved.removed||{},prefs:saved.prefs||null,plan:saved.plan||null};
+  if(!(S.dur>=0.5&&S.dur<=8))S.dur=2;
+  applyPlan();
   render();
   if(!S.prefs)openSetup();
 
